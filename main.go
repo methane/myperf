@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -22,18 +24,12 @@ loop:
 	for {
 		select {
 		case <-stop:
-			log.Println("stop")
 			break loop
 		default:
-			row := stmt.QueryRow()
-			var n int
-			err := row.Scan(&n)
-			switch {
-			case err != nil:
+			_, err := stmt.Exec()
+			if err != nil {
 				log.Println(err)
-			case n != 2:
-				log.Println("Bad Result ", n)
-			default:
+			} else {
 				count++
 			}
 		}
@@ -47,7 +43,15 @@ func run(concurrency, duration int) {
 	for i := 0; i < concurrency; i++ {
 		go attack(stop, result)
 	}
-	<-time.After(time.Second * time.Duration(duration))
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, os.Kill)
+	select {
+	case <-time.After(time.Second * time.Duration(duration)):
+		break
+	case <-sig:
+		break
+	}
 	log.Println("Stopping...")
 	close(stop)
 
