@@ -11,12 +11,9 @@ import (
 )
 
 var db *sql.DB
+var stmt *sql.Stmt
 
 func attack(stop chan bool, result chan int64) {
-	stmt, err := db.Prepare("SELECT 1+1")
-	if err != nil {
-		log.Fatal(err)
-	}
 	var count int64
 	defer func() {
 		result <- count
@@ -65,10 +62,11 @@ func run(concurrency, duration int) {
 
 func main() {
 	var concurrency, duration int
-	var dsn string
+	var dsn, query string
 	flag.IntVar(&concurrency, "concurrency", 10, "Concurency")
 	flag.IntVar(&duration, "duration", 10, "Duration [sec]")
 	flag.StringVar(&dsn, "dsn", "", "DSN (see https://github.com/go-sql-driver/mysql#dsn-data-source-name)")
+	flag.StringVar(&query, "query", "SELECT 1+1", "Query to send")
 	flag.Parse()
 
 	var err error
@@ -77,5 +75,9 @@ func main() {
 		log.Fatal(err)
 	}
 	db.SetMaxIdleConns(concurrency)
+	stmt, err = db.Prepare("SELECT 1+1")
+	if err != nil {
+		log.Fatal(err)
+	}
 	run(concurrency, duration)
 }

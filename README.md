@@ -1,3 +1,3 @@
 # myperf
 
-Measure max qps
+Measure max qps of MySQL.
