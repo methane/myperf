@@ -13,9 +13,8 @@ import (
 )
 
 var db *sql.DB
-var stmt *sql.Stmt
 
-func attack(stop chan bool, result chan int64) {
+func attack(stop chan bool, result chan int64, query string) {
 	var count int64
 	defer func() {
 		result <- count
@@ -26,7 +25,7 @@ loop:
 		case <-stop:
 			break loop
 		default:
-			_, err := stmt.Exec()
+			_, err := db.Exec(query)
 			if err != nil {
 				log.Println(err)
 			} else {
@@ -36,12 +35,12 @@ loop:
 	}
 }
 
-func run(concurrency, duration int) {
+func run(concurrency, duration int, query string) {
 	stop := make(chan bool)
 	result := make(chan int64)
 
 	for i := 0; i < concurrency; i++ {
-		go attack(stop, result)
+		go attack(stop, result, query)
 	}
 
 	sig := make(chan os.Signal, 1)
@@ -78,10 +77,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.SetMaxIdleConns(concurrency)
-	stmt, err = db.Prepare("SELECT 1+1")
+	_, err = db.Exec(query)
 	if err != nil {
 		log.Fatal(err)
 	}
-	run(concurrency, duration)
+	db.SetMaxIdleConns(concurrency)
+	run(concurrency, duration, query)
 }
