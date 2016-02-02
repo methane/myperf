@@ -66,10 +66,12 @@ func run(concurrency, duration int, query string) {
 func main() {
 	var concurrency, duration int
 	var dsn, query string
+	var nopool bool
 	flag.IntVar(&concurrency, "concurrency", 10, "Concurency")
 	flag.IntVar(&duration, "duration", 10, "Duration [sec]")
 	flag.StringVar(&dsn, "dsn", "", "DSN (see https://github.com/go-sql-driver/mysql#dsn-data-source-name)")
 	flag.StringVar(&query, "query", "SELECT 1+1", "Query to send")
+	flag.BoolVar(&nopool, "nopool", false, "not use connection pool")
 	flag.Parse()
 
 	var err error
@@ -81,6 +83,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.SetMaxIdleConns(concurrency)
+	if nopool == false {
+		db.SetMaxIdleConns(concurrency)
+	}
 	run(concurrency, duration, query)
 }
